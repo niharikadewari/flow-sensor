@@ -106,11 +106,7 @@
                             <h3 class="text-2xl font-bold text-gray-800">Live Telemetry Data</h3>
                             <p class="text-sm text-gray-500 mt-1">Updates every 60 seconds from the field.</p>
                         </div>
-                        <a href="https://docs.google.com/spreadsheets/d/1Ezqokpwi8i1e0J8NUqKnWMgLuWeGcedoG3AHZNhnFMY/edit?gid=0#gid=0" target="_blank" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm font-medium text-sm group">
-                            <span>Open Google Sheet</span>
-                            <i class="fa-solid fa-arrow-up-right-from-square ml-2 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform"></i>
-                        </a>
-                    </div>
+                        </div>
 
                     <div class="relative flex-grow rounded-xl overflow-hidden border border-gray-200 bg-gray-50 shadow-inner iframe-container">
                         <div id="loadingOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 z-10">
@@ -255,9 +251,9 @@
                 // Get all rows from the sheet
                 const rows = jsonData.table.rows;
                 
-                // Filter out empty rows, then grab the last 20
+                // Filter out empty rows, then grab the last 10
                 const validRows = rows.filter(row => row && row.c && row.c[0] && row.c[1]);
-                const latestData = validRows.slice(-20);
+                const latestData = validRows.slice(-10); // <--- Changed from -20 to -10
                 
                 const newLabels = [];
                 const newData = [];
@@ -265,7 +261,6 @@
                 latestData.forEach(row => {
                     // COLUMN A (Index 0): Time/Date
                     // COLUMN B (Index 1): Discharge reading
-                    // *If your Excel sheet is different, change [0] and [1] below.*
                     
                     let timestampRaw = row.c[0].f || row.c[0].v; // Gets formatted string or raw value
                     let flowValueRaw = row.c[1].v;               // Gets the raw number
