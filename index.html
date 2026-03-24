@@ -6,6 +6,7 @@
     <title>Live Spring Discharge - ICAR VPKAS Almora</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
         body {
@@ -25,7 +26,6 @@
             background: #cbd5e1;
             border-radius: 4px;
         }
-        .ai-output-text strong { color: #1f2937; font-weight: 600; }
     </style>
 </head>
 <body class="text-gray-800 antialiased min-h-screen flex flex-col">
@@ -136,37 +136,22 @@
             </div>
         </div>
 
-        <div class="mt-8 glass-card rounded-2xl shadow-md p-6 border-t-4 border-purple-500">
-            <div class="flex items-center gap-3 mb-4">
-                <div class="bg-purple-100 p-3 rounded-full text-purple-600">
-                    <i class="fa-solid fa-robot text-xl"></i>
-                </div>
+        <div class="mt-8 glass-card rounded-2xl shadow-md p-6 border-t-4 border-blue-500">
+            <div class="flex justify-between items-center mb-4">
                 <div>
-                    <h3 class="text-2xl font-bold text-gray-800">AICRP-IWM AI Assistant</h3>
-                    <p class="text-sm text-gray-500">Ask about Himalayan spring discharge or irrigation planning.</p>
+                    <h3 class="text-2xl font-bold text-gray-800">Discharge Trend Analysis</h3>
+                    <p class="text-sm text-gray-500">Real-time graphical representation of spring discharge.</p>
+                </div>
+                <div class="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
+                    <div class="w-2 h-2 bg-blue-500 rounded-full animate-ping"></div>
+                    Live Graph
                 </div>
             </div>
-
-            <div class="flex flex-col md:flex-row gap-4 mb-6">
-                <button id="btn-generate-report" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-xl font-medium transition shadow-sm flex items-center justify-center">
-                    Generate Insights ✨
-                </button>
-                <div class="flex-grow flex border border-gray-300 rounded-xl overflow-hidden bg-white">
-                    <input type="text" id="ai-user-input" placeholder="e.g., How does discharge affect Rabi crop planning?" class="w-full px-4 py-3 outline-none">
-                    <button id="btn-ask-ai" class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-3 font-medium transition border-l border-gray-300">
-                        Ask ✨
-                    </button>
-                </div>
-            </div>
-            <div id="ai-output-container" class="hidden bg-purple-50/50 border border-purple-100 rounded-xl p-6 relative">
-                <div id="ai-loading" class="hidden flex items-center gap-3 text-purple-600 font-medium">
-                    <i class="fa-solid fa-circle-notch fa-spin text-xl"></i>
-                    <span>Analyzing hydro-data...</span>
-                </div>
-                <div id="ai-response" class="text-gray-700 text-sm md:text-base leading-relaxed whitespace-pre-wrap"></div>
+            <div class="relative h-[350px] w-full">
+                <canvas id="liveDischargeChart"></canvas>
             </div>
         </div>
-    </main>
+        </main>
 
     <footer class="bg-gray-800 text-gray-400 py-6 text-center text-sm">
         <div class="max-w-7xl mx-auto px-4">
@@ -178,6 +163,7 @@
     <script>
         document.getElementById('year').textContent = new Date().getFullYear();
 
+        // --- IFRAME REFRESH LOGIC ---
         const iframe = document.getElementById('liveDataIframe');
         const updateText = document.getElementById('lastUpdatedText');
         const baseSrc = iframe.src;
@@ -189,46 +175,94 @@
             updateText.innerHTML = `<i class="fa-regular fa-clock mr-1"></i> Last refreshed at ${now.toLocaleTimeString()}`;
         }, 60000);
 
-        // --- GEMINI API INTEGRATION ---
-        const apiKey = ""; // Provided at runtime
-        const btnGenerateReport = document.getElementById('btn-generate-report');
-        const btnAskAi = document.getElementById('btn-ask-ai');
-        const aiUserInput = document.getElementById('ai-user-input');
-        const outputContainer = document.getElementById('ai-output-container');
-        const aiLoading = document.getElementById('ai-loading');
-        const aiResponse = document.getElementById('ai-response');
 
-        function formatGeminiResponse(text) {
-            return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>');
-        }
+        // --- LIVE GRAPH (CHART.JS) LOGIC ---
+        const ctx = document.getElementById('liveDischargeChart').getContext('2d');
+        
+        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(16, 185, 129, 0.5)'); 
+        gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
 
-        async function fetchGeminiResponse(promptText) {
-            outputContainer.classList.remove('hidden');
-            aiResponse.classList.add('hidden');
-            aiLoading.classList.remove('hidden');
-
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-            const payload = {
-                contents: [{ parts: [{ text: promptText }] }],
-                systemInstruction: { parts: [{ text: "You are an expert for ICAR-VPKAS focusing on Himalayan hydrology and AICRP Irrigation Water Management. Help with discharge data and crop planning." }] }
-            };
-
-            try {
-                const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                const result = await response.json();
-                const rawText = result.candidates[0].content.parts[0].text;
-                aiLoading.classList.add('hidden');
-                aiResponse.classList.remove('hidden');
-                aiResponse.innerHTML = formatGeminiResponse(rawText);
-            } catch (error) {
-                aiLoading.classList.add('hidden');
-                aiResponse.classList.remove('hidden');
-                aiResponse.innerHTML = "Connection to ICAR AI failed. Please try again.";
+        const liveChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [], 
+                datasets: [{
+                    label: 'Discharge Rate (Liters/min)',
+                    data: [], 
+                    borderColor: '#10b981', 
+                    backgroundColor: gradient,
+                    borderWidth: 2,
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#10b981',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    fill: true,
+                    tension: 0.4 
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        title: { display: true, text: 'Time', font: { weight: 'bold' } },
+                        grid: { display: false }
+                    },
+                    y: {
+                        display: true,
+                        title: { display: true, text: 'Flow (L/min)', font: { weight: 'bold' } },
+                        suggestedMin: 0,
+                        suggestedMax: 20,
+                        grid: { borderDash: [5, 5] }
+                    }
+                },
+                animation: {
+                    duration: 0 
+                }
             }
+        });
+
+        // Initialize with historical data
+        for(let i = 0; i < 15; i++) {
+             let pastTime = new Date(Date.now() - (15 - i) * 5000);
+             liveChart.data.labels.push(pastTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+             liveChart.data.datasets[0].data.push(Math.max(5, 12 + (Math.random() * 4 - 2)).toFixed(2));
+        }
+        liveChart.update();
+
+        // Update chart with new data
+        function updateChart() {
+            const now = new Date();
+            const timeLabel = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            
+            // --- REPLACE THIS BLOCK WITH YOUR ACTUAL DATA PULL ---
+            const simulatedFlow = Math.max(5, 12 + (Math.random() * 4 - 2)).toFixed(2); 
+            // -----------------------------------------------------
+
+            liveChart.data.labels.push(timeLabel);
+            liveChart.data.datasets[0].data.push(simulatedFlow);
+
+            if (liveChart.data.labels.length > 20) {
+                liveChart.data.labels.shift();
+                liveChart.data.datasets[0].data.shift();
+            }
+
+            liveChart.update();
         }
 
-        btnGenerateReport.addEventListener('click', () => fetchGeminiResponse("Write a short 3-paragraph report on how IoT discharge monitoring helps Himalayan farmers with water budgeting."));
-        btnAskAi.addEventListener('click', () => { if(aiUserInput.value) { fetchGeminiResponse(aiUserInput.value); aiUserInput.value = ""; } });
+        setInterval(updateChart, 5000);
     </script>
 </body>
 </html>
