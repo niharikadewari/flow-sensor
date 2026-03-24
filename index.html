@@ -18,11 +18,12 @@
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
-        .iframe-container::-webkit-scrollbar {
+        /* Custom scrollbar for our new table */
+        .table-container::-webkit-scrollbar {
             width: 8px;
             height: 8px;
         }
-        .iframe-container::-webkit-scrollbar-thumb {
+        .table-container::-webkit-scrollbar-thumb {
             background: #cbd5e1;
             border-radius: 4px;
         }
@@ -92,7 +93,6 @@
                                   <li class="flex items-start gap-3">
                                 <i class="fa-solid fa-microchip mt-1 text-gray-500 w-4"></i>
                                 <span><strong>Sensor:</strong> YF-S201 Water Flow Sensor</span>
-                          
                             </li>
                         </ul>
                     </div>
@@ -103,28 +103,31 @@
                 <div class="glass-card rounded-2xl shadow-md p-6 flex flex-col border-t-4 border-emerald-600 h-[550px]">
                     <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
                         <div>
-                            <h3 class="text-2xl font-bold text-gray-800">Live Telemetry Data</h3>
-                            <p class="text-sm text-gray-500 mt-1">Updates every 60 seconds from the field.</p>
+                            <h3 class="text-2xl font-bold text-gray-800">Recent Telemetry Data</h3>
+                            <p class="text-sm text-gray-500 mt-1">Showing the last 10 readings. Updates every 60s.</p>
                         </div>
-                        </div>
+                    </div>
 
-                    <div class="relative flex-grow rounded-xl overflow-hidden border border-gray-200 bg-gray-50 shadow-inner iframe-container">
-                        <div id="loadingOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 z-10">
+                    <div class="relative flex-grow rounded-xl overflow-y-auto border border-gray-200 bg-white shadow-inner table-container">
+                        <div id="loadingOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-50/90 z-10">
                             <i class="fa-solid fa-circle-notch fa-spin text-4xl text-emerald-600 mb-3"></i>
                             <p class="text-gray-500 font-medium">Syncing with Sensor...</p>
                         </div>
                         
-                        <iframe 
-                            id="liveDataIframe"
-                            src="https://docs.google.com/spreadsheets/d/e/2PACX-1vS0rZ6VbmTbpNOV7tCvX5pRdi7NGAa753g5kNlCrK7qV0yinH7hayvTSQGKGlKukF54mrNKZhQHeqVW/pubhtml?gid=0&single=true&widget=false&headers=false&chrome=false" 
-                            class="absolute inset-0 w-full h-full border-0"
-                            title="Live Water Flow Data"
-                            onload="document.getElementById('loadingOverlay').style.display='none';">
-                        </iframe>
+                        <table class="w-full text-left text-sm text-gray-600">
+                            <thead class="bg-gray-100 text-gray-800 font-semibold sticky top-0 shadow-sm">
+                                <tr>
+                                    <th class="px-6 py-4">Date & Time</th>
+                                    <th class="px-6 py-4 text-right">Discharge (L/min)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="liveDataTableBody" class="divide-y divide-gray-100">
+                                </tbody>
+                        </table>
                     </div>
 
                     <div class="mt-4 flex items-center justify-between text-xs text-gray-500">
-                        <span id="lastUpdatedText"><i class="fa-regular fa-clock mr-1"></i> Dashboard loaded.</span>
+                        <span id="lastUpdatedText"><i class="fa-regular fa-clock mr-1"></i> Waiting for first sync...</span>
                         <span class="flex items-center gap-1 font-semibold text-emerald-700 uppercase tracking-tighter animate-pulse">
                             <i class="fa-solid fa-satellite"></i> Uplink Active
                         </span>
@@ -137,7 +140,7 @@
             <div class="flex justify-between items-center mb-4 flex-wrap gap-4">
                 <div>
                     <h3 class="text-2xl font-bold text-gray-800">Discharge Trend Analysis</h3>
-                    <p class="text-sm text-gray-500">Strictly pulling real-time data from Google Sheets.</p>
+                    <p class="text-sm text-gray-500">Graphing the last 10 real-time data points.</p>
                 </div>
                 <div class="flex items-center gap-4">
                     <span id="chartLoadingText" class="text-xs text-blue-500 font-medium animate-pulse hidden"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Fetching Live Data...</span>
@@ -152,7 +155,7 @@
                 <canvas id="liveDischargeChart"></canvas>
             </div>
         </div>
-        </main>
+    </main>
 
     <footer class="bg-gray-800 text-gray-400 py-6 text-center text-sm">
         <div class="max-w-7xl mx-auto px-4">
@@ -164,20 +167,12 @@
     <script>
         document.getElementById('year').textContent = new Date().getFullYear();
 
-        // --- IFRAME REFRESH LOGIC ---
-        const iframe = document.getElementById('liveDataIframe');
+        // --- UI ELEMENTS ---
         const updateText = document.getElementById('lastUpdatedText');
-        const baseSrc = iframe.src;
+        const tableBody = document.getElementById('liveDataTableBody');
+        const loadingOverlay = document.getElementById('loadingOverlay');
 
-        setInterval(() => {
-            iframe.src = baseSrc + "&t=" + new Date().getTime();
-            document.getElementById('loadingOverlay').style.display = 'flex';
-            const now = new Date();
-            updateText.innerHTML = `<i class="fa-regular fa-clock mr-1"></i> Last refreshed at ${now.toLocaleTimeString()}`;
-        }, 60000);
-
-
-        // --- LIVE GRAPH (CHART.JS) LOGIC ---
+        // --- CHART INITIALIZATION ---
         const ctx = document.getElementById('liveDischargeChart').getContext('2d');
         const chartLoadingText = document.getElementById('chartLoadingText');
         const chartErrorText = document.getElementById('chartErrorText');
@@ -186,7 +181,6 @@
         gradient.addColorStop(0, 'rgba(16, 185, 129, 0.5)'); 
         gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
 
-        // Initialize empty chart (NO DUMMY DATA)
         const liveChart = new Chart(ctx, {
             type: 'line',
             data: {
@@ -230,12 +224,11 @@
             }
         });
 
-        // --- GOOGLE SHEETS API FETCHING LOGIC ---
+        // --- DATA FETCHING & UI UPDATE LOGIC ---
         const sheetId = '1Ezqokpwi8i1e0J8NUqKnWMgLuWeGcedoG3AHZNhnFMY';
-        // Upgraded to Google Visualization Query API (Returns JSON, avoids CORS/CSV parsing errors)
         const gvizUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&gid=0`;
 
-        async function fetchAndUpdateChart() {
+        async function fetchAndUpdateDashboard() {
             chartLoadingText.classList.remove('hidden');
             chartErrorText.classList.add('hidden');
             
@@ -244,54 +237,77 @@
                 const response = await fetch(gvizUrl + '&t=' + new Date().getTime());
                 const text = await response.text();
                 
-                // The API returns a string wrapped in a function call. We slice it out to get clean JSON.
+                // Clean API JSON
                 const jsonString = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);
                 const jsonData = JSON.parse(jsonString);
                 
-                // Get all rows from the sheet
+                // Get valid rows and extract exactly the last 10
                 const rows = jsonData.table.rows;
-                
-                // Filter out empty rows, then grab the last 10
                 const validRows = rows.filter(row => row && row.c && row.c[0] && row.c[1]);
-                const latestData = validRows.slice(-10); // <--- Changed from -20 to -10
+                const latest10Data = validRows.slice(-10); 
                 
+                // Arrays for the chart
                 const newLabels = [];
                 const newData = [];
+                
+                // Clear the table before adding new rows
+                tableBody.innerHTML = '';
 
-                latestData.forEach(row => {
-                    // COLUMN A (Index 0): Time/Date
-                    // COLUMN B (Index 1): Discharge reading
+                // We create a copy and reverse it so the newest entry is at the TOP of the table
+                const tableDataReversed = [...latest10Data].reverse();
+
+                // 1. Populate the HTML Table (Top to Bottom = Newest to Oldest)
+                tableDataReversed.forEach(row => {
+                    let timestampRaw = row.c[0].f || row.c[0].v; 
+                    let flowValueRaw = row.c[1].v;
                     
-                    let timestampRaw = row.c[0].f || row.c[0].v; // Gets formatted string or raw value
-                    let flowValueRaw = row.c[1].v;               // Gets the raw number
+                    let displayFlow = (typeof flowValueRaw === 'number') ? flowValueRaw.toFixed(2) : '--';
+
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-emerald-50 transition-colors";
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 font-medium">${timestampRaw}</td>
+                        <td class="px-6 py-4 text-right text-emerald-700 font-bold">${displayFlow}</td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+
+                // 2. Populate the Chart (Left to Right = Oldest to Newest)
+                latest10Data.forEach(row => {
+                    let timestampRaw = row.c[0].f || row.c[0].v; 
+                    let flowValueRaw = row.c[1].v;               
                     
-                    // Only plot if the flow value is an actual number
                     if (typeof flowValueRaw === 'number' && !isNaN(flowValueRaw)) {
-                        // Attempt to clean up timestamp (show just time if it's a full date string)
                         let timeString = String(timestampRaw).split(' ').pop();
                         newLabels.push(timeString || timestampRaw);
                         newData.push(flowValueRaw);
                     }
                 });
 
-                // Update Chart strictly with real data
+                // Update Chart
                 liveChart.data.labels = newLabels;
                 liveChart.data.datasets[0].data = newData;
                 liveChart.update();
 
+                // Update "Last Synced" text and hide loading overlay
+                const now = new Date();
+                updateText.innerHTML = `<i class="fa-regular fa-clock mr-1"></i> Last refreshed at ${now.toLocaleTimeString()}`;
+                loadingOverlay.style.display = 'none';
+
             } catch (error) {
                 console.error("Error reading Google Sheet data:", error);
                 chartErrorText.classList.remove('hidden');
+                updateText.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-red-500 mr-1"></i> Data fetch failed`;
             } finally {
                 chartLoadingText.classList.add('hidden');
             }
         }
 
         // Fetch immediately on load
-        fetchAndUpdateChart();
+        fetchAndUpdateDashboard();
 
-        // Update the graph every 60 seconds (matching the iframe reload interval)
-        setInterval(fetchAndUpdateChart, 60000);
+        // Update the dashboard every 60 seconds
+        setInterval(fetchAndUpdateDashboard, 60000);
 
     </script>
 </body>
