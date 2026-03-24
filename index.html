@@ -140,10 +140,11 @@
             <div class="flex justify-between items-center mb-4 flex-wrap gap-4">
                 <div>
                     <h3 class="text-2xl font-bold text-gray-800">Discharge Trend Analysis</h3>
-                    <p class="text-sm text-gray-500">Real-time graphical representation of spring discharge from Google Sheets.</p>
+                    <p class="text-sm text-gray-500">Strictly pulling real-time data from Google Sheets.</p>
                 </div>
                 <div class="flex items-center gap-4">
-                    <span id="chartLoadingText" class="text-xs text-blue-500 font-medium animate-pulse hidden"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Fetching Sheet Data...</span>
+                    <span id="chartLoadingText" class="text-xs text-blue-500 font-medium animate-pulse hidden"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Fetching Live Data...</span>
+                    <span id="chartErrorText" class="text-xs text-red-500 font-medium hidden"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Sync Failed</span>
                     <div class="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
                         <div class="w-2 h-2 bg-blue-500 rounded-full animate-ping"></div>
                         Live Graph
@@ -182,18 +183,20 @@
         // --- LIVE GRAPH (CHART.JS) LOGIC ---
         const ctx = document.getElementById('liveDischargeChart').getContext('2d');
         const chartLoadingText = document.getElementById('chartLoadingText');
+        const chartErrorText = document.getElementById('chartErrorText');
         
         const gradient = ctx.createLinearGradient(0, 0, 0, 400);
         gradient.addColorStop(0, 'rgba(16, 185, 129, 0.5)'); 
         gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
 
+        // Initialize empty chart (NO DUMMY DATA)
         const liveChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: [], // Will be filled with Google Sheet timestamps
+                labels: [], 
                 datasets: [{
                     label: 'Discharge Rate (Liters/min)',
-                    data: [], // Will be filled with Google Sheet data
+                    data: [], 
                     borderColor: '#10b981', 
                     backgroundColor: gradient,
                     borderWidth: 2,
@@ -203,7 +206,7 @@
                     pointRadius: 4,
                     pointHoverRadius: 6,
                     fill: true,
-                    tension: 0.2 // Slight smoothing
+                    tension: 0.2
                 }]
             },
             options: {
@@ -226,57 +229,63 @@
                         grid: { borderDash: [5, 5] }
                     }
                 },
-                animation: { duration: 500 } // Slight animation for data updates
+                animation: { duration: 500 }
             }
         });
 
-        // --- GOOGLE SHEETS CSV FETCHING LOGIC ---
-        // We use the ID from your provided Google Sheets link
+        // --- GOOGLE SHEETS API FETCHING LOGIC ---
         const sheetId = '1Ezqokpwi8i1e0J8NUqKnWMgLuWeGcedoG3AHZNhnFMY';
-        // Using Google Sheets public CSV export URL
-        const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=0`;
+        // Upgraded to Google Visualization Query API (Returns JSON, avoids CORS/CSV parsing errors)
+        const gvizUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&gid=0`;
 
         async function fetchAndUpdateChart() {
             chartLoadingText.classList.remove('hidden');
+            chartErrorText.classList.add('hidden');
             
             try {
-                // Add timestamp to bypass browser cache
-                const response = await fetch(csvUrl + '&t=' + new Date().getTime());
-                const csvText = await response.text();
+                // Fetch the data
+                const response = await fetch(gvizUrl + '&t=' + new Date().getTime());
+                const text = await response.text();
                 
-                // Parse CSV rows
-                const rows = csvText.split('\n').map(row => row.split(','));
+                // The API returns a string wrapped in a function call. We slice it out to get clean JSON.
+                const jsonString = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);
+                const jsonData = JSON.parse(jsonString);
                 
-                // Remove header (row 0) and filter out empty rows
-                const dataRows = rows.slice(1).filter(row => row.length > 1 && row[0].trim() !== "");
+                // Get all rows from the sheet
+                const rows = jsonData.table.rows;
                 
-                // Get the last 20 rows to display on the chart
-                const latestData = dataRows.slice(-20);
+                // Filter out empty rows, then grab the last 20
+                const validRows = rows.filter(row => row && row.c && row.c[0] && row.c[1]);
+                const latestData = validRows.slice(-20);
                 
-                // Extract Labels and Data points
                 const newLabels = [];
                 const newData = [];
 
                 latestData.forEach(row => {
-                    // NOTE: Change index [0] if Timestamp is in a different column (A=0, B=1, C=2)
-                    let timestampRaw = row[0] ? row[0].trim() : ''; 
-                    // Sometimes Google sheets exports date/time, we extract just time for a cleaner graph if possible
-                    let timeOnly = timestampRaw.split(' ').pop(); 
-
-                    // NOTE: Change index [1] if Discharge value is in a different column (A=0, B=1, C=2)
-                    let flowValueRaw = row[1] ? parseFloat(row[1].trim()) : 0;
+                    // COLUMN A (Index 0): Time/Date
+                    // COLUMN B (Index 1): Discharge reading
+                    // *If your Excel sheet is different, change [0] and [1] below.*
                     
-                    newLabels.push(timeOnly || timestampRaw);
-                    newData.push(isNaN(flowValueRaw) ? 0 : flowValueRaw);
+                    let timestampRaw = row.c[0].f || row.c[0].v; // Gets formatted string or raw value
+                    let flowValueRaw = row.c[1].v;               // Gets the raw number
+                    
+                    // Only plot if the flow value is an actual number
+                    if (typeof flowValueRaw === 'number' && !isNaN(flowValueRaw)) {
+                        // Attempt to clean up timestamp (show just time if it's a full date string)
+                        let timeString = String(timestampRaw).split(' ').pop();
+                        newLabels.push(timeString || timestampRaw);
+                        newData.push(flowValueRaw);
+                    }
                 });
 
-                // Update Chart
+                // Update Chart strictly with real data
                 liveChart.data.labels = newLabels;
                 liveChart.data.datasets[0].data = newData;
                 liveChart.update();
 
             } catch (error) {
-                console.error("Error fetching Google Sheet data for chart:", error);
+                console.error("Error reading Google Sheet data:", error);
+                chartErrorText.classList.remove('hidden');
             } finally {
                 chartLoadingText.classList.add('hidden');
             }
