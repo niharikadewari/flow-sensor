@@ -55,7 +55,7 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
             
-            <div class="lg:col-span-4 space-y-6">
+            <div class="lg:col-span-5 space-y-6">
                 <div class="glass-card rounded-2xl shadow-md overflow-hidden transition-transform duration-300 hover:shadow-lg h-full">
                     <div class="relative h-64 w-full bg-gray-200">
                         <img src="Picture1.jpg" alt="बाज़ार का नौला" class="absolute inset-0 w-full h-full object-cover">
@@ -90,27 +90,19 @@
                 </div>
             </div>
 
-            <div class="lg:col-span-8 flex flex-col">
+            <div class="lg:col-span-7 flex flex-col">
                 <div class="glass-card rounded-2xl shadow-md p-6 border-t-4 border-blue-500 flex flex-col h-full">
-                    <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
+                    <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
                         <div>
-                            <h3 class="text-2xl font-bold text-gray-800" id="chartTitle">Live Discharge Data</h3>
-                            <p class="text-sm text-gray-500" id="chartSubtitle">Graphical representation of the last 10 readings.</p>
+                            <h3 class="text-2xl font-bold text-gray-800">Discharge Trend Analysis</h3>
+                            <p class="text-sm text-gray-500">Live graphical representation of the last 10 readings.</p>
                         </div>
-                        
-                        <div class="flex flex-col items-end gap-3">
-                            <div class="flex p-1 bg-gray-100 rounded-lg shadow-inner">
-                                <button id="tabLive" class="px-4 py-2 text-sm font-semibold rounded-md transition-all duration-200 bg-white shadow-sm text-blue-600" onclick="switchTab('live')">
-                                    <i class="fa-solid fa-bolt mr-1"></i> Live (Last 10)
-                                </button>
-                                <button id="tabDaily" class="px-4 py-2 text-sm font-semibold rounded-md transition-all duration-200 text-gray-500 hover:text-gray-700" onclick="switchTab('daily')">
-                                    <i class="fa-solid fa-calendar-day mr-1"></i> Daily Average
-                                </button>
-                            </div>
-
-                            <div class="flex items-center gap-2">
-                                <span id="chartLoadingText" class="text-xs text-blue-500 font-medium animate-pulse hidden"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Fetching Data...</span>
-                                <span id="chartErrorText" class="text-xs text-red-500 font-medium hidden"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Sync Failed</span>
+                        <div class="flex items-center gap-4">
+                            <span id="chartLoadingText" class="text-xs text-blue-500 font-medium animate-pulse hidden"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Fetching Live Data...</span>
+                            <span id="chartErrorText" class="text-xs text-red-500 font-medium hidden"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Sync Failed</span>
+                            <div class="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
+                                <div class="w-2 h-2 bg-blue-500 rounded-full animate-ping"></div>
+                                Live Graph
                             </div>
                         </div>
                     </div>
@@ -121,7 +113,7 @@
 
                     <div class="mt-6 flex items-center justify-between text-xs text-gray-500 border-t pt-4">
                         <span id="lastUpdatedText"><i class="fa-regular fa-clock mr-1"></i> Waiting for first sync...</span>
-                        <span id="uplinkStatus" class="flex items-center gap-1 font-semibold text-emerald-700 uppercase tracking-tighter animate-pulse">
+                        <span class="flex items-center gap-1 font-semibold text-emerald-700 uppercase tracking-tighter animate-pulse">
                             <i class="fa-solid fa-satellite"></i> Uplink Active
                         </span>
                     </div>
@@ -141,43 +133,30 @@
     <script>
         document.getElementById('year').textContent = new Date().getFullYear();
 
-        // --- GLOBAL VARIABLES FOR DATA ---
-        let currentView = 'live'; // Can be 'live' or 'daily'
-        let parsedLiveData = { labels: [], data: [] };
-        let parsedDailyData = { labels: [], data: [] };
-
         // --- UI ELEMENTS ---
         const updateText = document.getElementById('lastUpdatedText');
-        const tabLive = document.getElementById('tabLive');
-        const tabDaily = document.getElementById('tabDaily');
-        const chartTitle = document.getElementById('chartTitle');
-        const chartSubtitle = document.getElementById('chartSubtitle');
 
         // --- CHART INITIALIZATION ---
         const ctx = document.getElementById('liveDischargeChart').getContext('2d');
         const chartLoadingText = document.getElementById('chartLoadingText');
         const chartErrorText = document.getElementById('chartErrorText');
         
-        const gradientLive = ctx.createLinearGradient(0, 0, 0, 400);
-        gradientLive.addColorStop(0, 'rgba(59, 130, 246, 0.5)'); // Blue for Live
-        gradientLive.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(16, 185, 129, 0.5)'); 
+        gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
 
-        const gradientDaily = ctx.createLinearGradient(0, 0, 0, 400);
-        gradientDaily.addColorStop(0, 'rgba(16, 185, 129, 0.5)'); // Emerald for Daily
-        gradientDaily.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
-
-        const mainChart = new Chart(ctx, {
+        const liveChart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: [], 
                 datasets: [{
-                    label: 'Discharge Rate (L/min)',
+                    label: 'Discharge Rate (Liters/min)',
                     data: [], 
-                    borderColor: '#3b82f6', 
-                    backgroundColor: gradientLive,
+                    borderColor: '#10b981', 
+                    backgroundColor: gradient,
                     borderWidth: 2,
                     pointBackgroundColor: '#ffffff',
-                    pointBorderColor: '#3b82f6',
+                    pointBorderColor: '#10b981',
                     pointBorderWidth: 2,
                     pointRadius: 4,
                     pointHoverRadius: 6,
@@ -189,7 +168,7 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { display: false },
+                    legend: { position: 'top' },
                     tooltip: { mode: 'index', intersect: false }
                 },
                 scales: {
@@ -201,59 +180,13 @@
                     y: {
                         display: true,
                         title: { display: true, text: 'Flow (L/min)', font: { weight: 'bold' } },
-                        min: 1, // Locked lower bound
-                        max: 3, // Locked upper bound to show variation clearly
+                        suggestedMin: 0,
                         grid: { borderDash: [5, 5] }
                     }
                 },
                 animation: { duration: 500 }
             }
         });
-
-        // --- TAB SWITCHING LOGIC ---
-        function switchTab(viewType) {
-            currentView = viewType;
-            
-            // Update Button Styles
-            if (viewType === 'live') {
-                tabLive.className = "px-4 py-2 text-sm font-semibold rounded-md transition-all duration-200 bg-white shadow-sm text-blue-600";
-                tabDaily.className = "px-4 py-2 text-sm font-semibold rounded-md transition-all duration-200 text-gray-500 hover:text-gray-700";
-                
-                chartTitle.innerText = "Live Discharge Data";
-                chartSubtitle.innerText = "Graphical representation of the last 10 readings.";
-                
-                mainChart.data.datasets[0].borderColor = '#3b82f6'; // Blue
-                mainChart.data.datasets[0].pointBorderColor = '#3b82f6';
-                mainChart.data.datasets[0].backgroundColor = gradientLive;
-                mainChart.options.scales.x.title.text = "Time";
-
-            } else {
-                tabDaily.className = "px-4 py-2 text-sm font-semibold rounded-md transition-all duration-200 bg-white shadow-sm text-emerald-600";
-                tabLive.className = "px-4 py-2 text-sm font-semibold rounded-md transition-all duration-200 text-gray-500 hover:text-gray-700";
-                
-                chartTitle.innerText = "Daily Average Discharge";
-                chartSubtitle.innerText = "Historical daily averages (excluding today).";
-
-                mainChart.data.datasets[0].borderColor = '#10b981'; // Emerald
-                mainChart.data.datasets[0].pointBorderColor = '#10b981';
-                mainChart.data.datasets[0].backgroundColor = gradientDaily;
-                mainChart.options.scales.x.title.text = "Date";
-            }
-
-            renderChart();
-        }
-
-        // --- RENDER CHART BASED ON SELECTED TAB ---
-        function renderChart() {
-            if (currentView === 'live') {
-                mainChart.data.labels = parsedLiveData.labels;
-                mainChart.data.datasets[0].data = parsedLiveData.data;
-            } else {
-                mainChart.data.labels = parsedDailyData.labels;
-                mainChart.data.datasets[0].data = parsedDailyData.data;
-            }
-            mainChart.update();
-        }
 
         // --- GOOGLE SHEETS API FETCHING LOGIC ---
         const sheetId = '1Ezqokpwi8i1e0J8NUqKnWMgLuWeGcedoG3AHZNhnFMY';
@@ -264,6 +197,7 @@
             chartErrorText.classList.add('hidden');
             
             try {
+                // Fetch the data
                 const response = await fetch(gvizUrl + '&t=' + new Date().getTime());
                 const text = await response.text();
                 
@@ -271,58 +205,31 @@
                 const jsonString = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);
                 const jsonData = JSON.parse(jsonString);
                 
+                // Get valid rows and extract exactly the last 10
                 const rows = jsonData.table.rows;
-                const validRows = rows.filter(row => row && row.c && row.c[0] && row.c[1] && typeof row.c[1].v === 'number');
-                
-                if(validRows.length === 0) throw new Error("No valid data found");
-
-                // --- 1. PROCESS LIVE DATA (Last 10) ---
+                const validRows = rows.filter(row => row && row.c && row.c[0] && row.c[1]);
                 const latest10Data = validRows.slice(-10); 
-                parsedLiveData.labels = [];
-                parsedLiveData.data = [];
+                
+                // Arrays for the chart
+                const newLabels = [];
+                const newData = [];
 
+                // Populate the Chart (Left to Right = Oldest to Newest)
                 latest10Data.forEach(row => {
-                    let timestampRaw = row.c[0].f || String(row.c[0].v); 
-                    let flowValue = row.c[1].v;               
+                    let timestampRaw = row.c[0].f || row.c[0].v; 
+                    let flowValueRaw = row.c[1].v;               
                     
-                    let timeString = timestampRaw.split(' ').pop(); // Just grab the time part
-                    parsedLiveData.labels.push(timeString);
-                    parsedLiveData.data.push(flowValue);
+                    if (typeof flowValueRaw === 'number' && !isNaN(flowValueRaw)) {
+                        let timeString = String(timestampRaw).split(' ').pop();
+                        newLabels.push(timeString || timestampRaw);
+                        newData.push(flowValueRaw);
+                    }
                 });
 
-                // --- 2. PROCESS DAILY AVERAGES ---
-                let dailyAggregates = {};
-                let latestDateString = "";
-
-                validRows.forEach(row => {
-                    let timestampRaw = row.c[0].f || String(row.c[0].v);
-                    let flowValue = row.c[1].v;
-                    
-                    // Split by space to separate Date from Time (e.g., "10/24/2025 14:30:00" -> "10/24/2025")
-                    let datePart = timestampRaw.split(' ')[0]; 
-                    latestDateString = datePart; // Will end up being the very last date in the sheet (Today)
-
-                    if (!dailyAggregates[datePart]) {
-                        dailyAggregates[datePart] = { sum: 0, count: 0 };
-                    }
-                    dailyAggregates[datePart].sum += flowValue;
-                    dailyAggregates[datePart].count += 1;
-                });
-
-                parsedDailyData.labels = [];
-                parsedDailyData.data = [];
-
-                // Loop through dates and calculate averages, skipping the most recent date ("Today")
-                for (let dateKey in dailyAggregates) {
-                    if (dateKey !== latestDateString) {
-                        let avg = dailyAggregates[dateKey].sum / dailyAggregates[dateKey].count;
-                        parsedDailyData.labels.push(dateKey);
-                        parsedDailyData.data.push(avg.toFixed(2)); // Round to 2 decimal places
-                    }
-                }
-
-                // Push new data to the visual chart
-                renderChart();
+                // Update Chart
+                liveChart.data.labels = newLabels;
+                liveChart.data.datasets[0].data = newData;
+                liveChart.update();
 
                 // Update "Last Synced" text
                 const now = new Date();
