@@ -137,14 +137,17 @@
         </div>
 
         <div class="mt-8 glass-card rounded-2xl shadow-md p-6 border-t-4 border-blue-500">
-            <div class="flex justify-between items-center mb-4">
+            <div class="flex justify-between items-center mb-4 flex-wrap gap-4">
                 <div>
                     <h3 class="text-2xl font-bold text-gray-800">Discharge Trend Analysis</h3>
-                    <p class="text-sm text-gray-500">Real-time graphical representation of spring discharge.</p>
+                    <p class="text-sm text-gray-500">Real-time graphical representation of spring discharge from Google Sheets.</p>
                 </div>
-                <div class="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
-                    <div class="w-2 h-2 bg-blue-500 rounded-full animate-ping"></div>
-                    Live Graph
+                <div class="flex items-center gap-4">
+                    <span id="chartLoadingText" class="text-xs text-blue-500 font-medium animate-pulse hidden"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Fetching Sheet Data...</span>
+                    <div class="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
+                        <div class="w-2 h-2 bg-blue-500 rounded-full animate-ping"></div>
+                        Live Graph
+                    </div>
                 </div>
             </div>
             <div class="relative h-[350px] w-full">
@@ -178,6 +181,7 @@
 
         // --- LIVE GRAPH (CHART.JS) LOGIC ---
         const ctx = document.getElementById('liveDischargeChart').getContext('2d');
+        const chartLoadingText = document.getElementById('chartLoadingText');
         
         const gradient = ctx.createLinearGradient(0, 0, 0, 400);
         gradient.addColorStop(0, 'rgba(16, 185, 129, 0.5)'); 
@@ -186,10 +190,10 @@
         const liveChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: [], 
+                labels: [], // Will be filled with Google Sheet timestamps
                 datasets: [{
                     label: 'Discharge Rate (Liters/min)',
-                    data: [], 
+                    data: [], // Will be filled with Google Sheet data
                     borderColor: '#10b981', 
                     backgroundColor: gradient,
                     borderWidth: 2,
@@ -199,20 +203,15 @@
                     pointRadius: 4,
                     pointHoverRadius: 6,
                     fill: true,
-                    tension: 0.4 
+                    tension: 0.2 // Slight smoothing
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: {
-                        position: 'top',
-                    },
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false,
-                    }
+                    legend: { position: 'top' },
+                    tooltip: { mode: 'index', intersect: false }
                 },
                 scales: {
                     x: {
@@ -224,45 +223,71 @@
                         display: true,
                         title: { display: true, text: 'Flow (L/min)', font: { weight: 'bold' } },
                         suggestedMin: 0,
-                        suggestedMax: 20,
                         grid: { borderDash: [5, 5] }
                     }
                 },
-                animation: {
-                    duration: 0 
-                }
+                animation: { duration: 500 } // Slight animation for data updates
             }
         });
 
-        // Initialize with historical data
-        for(let i = 0; i < 15; i++) {
-             let pastTime = new Date(Date.now() - (15 - i) * 5000);
-             liveChart.data.labels.push(pastTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-             liveChart.data.datasets[0].data.push(Math.max(5, 12 + (Math.random() * 4 - 2)).toFixed(2));
-        }
-        liveChart.update();
+        // --- GOOGLE SHEETS CSV FETCHING LOGIC ---
+        // We use the ID from your provided Google Sheets link
+        const sheetId = '1Ezqokpwi8i1e0J8NUqKnWMgLuWeGcedoG3AHZNhnFMY';
+        // Using Google Sheets public CSV export URL
+        const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=0`;
 
-        // Update chart with new data
-        function updateChart() {
-            const now = new Date();
-            const timeLabel = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        async function fetchAndUpdateChart() {
+            chartLoadingText.classList.remove('hidden');
             
-            // --- REPLACE THIS BLOCK WITH YOUR ACTUAL DATA PULL ---
-            const simulatedFlow = Math.max(5, 12 + (Math.random() * 4 - 2)).toFixed(2); 
-            // -----------------------------------------------------
+            try {
+                // Add timestamp to bypass browser cache
+                const response = await fetch(csvUrl + '&t=' + new Date().getTime());
+                const csvText = await response.text();
+                
+                // Parse CSV rows
+                const rows = csvText.split('\n').map(row => row.split(','));
+                
+                // Remove header (row 0) and filter out empty rows
+                const dataRows = rows.slice(1).filter(row => row.length > 1 && row[0].trim() !== "");
+                
+                // Get the last 20 rows to display on the chart
+                const latestData = dataRows.slice(-20);
+                
+                // Extract Labels and Data points
+                const newLabels = [];
+                const newData = [];
 
-            liveChart.data.labels.push(timeLabel);
-            liveChart.data.datasets[0].data.push(simulatedFlow);
+                latestData.forEach(row => {
+                    // NOTE: Change index [0] if Timestamp is in a different column (A=0, B=1, C=2)
+                    let timestampRaw = row[0] ? row[0].trim() : ''; 
+                    // Sometimes Google sheets exports date/time, we extract just time for a cleaner graph if possible
+                    let timeOnly = timestampRaw.split(' ').pop(); 
 
-            if (liveChart.data.labels.length > 20) {
-                liveChart.data.labels.shift();
-                liveChart.data.datasets[0].data.shift();
+                    // NOTE: Change index [1] if Discharge value is in a different column (A=0, B=1, C=2)
+                    let flowValueRaw = row[1] ? parseFloat(row[1].trim()) : 0;
+                    
+                    newLabels.push(timeOnly || timestampRaw);
+                    newData.push(isNaN(flowValueRaw) ? 0 : flowValueRaw);
+                });
+
+                // Update Chart
+                liveChart.data.labels = newLabels;
+                liveChart.data.datasets[0].data = newData;
+                liveChart.update();
+
+            } catch (error) {
+                console.error("Error fetching Google Sheet data for chart:", error);
+            } finally {
+                chartLoadingText.classList.add('hidden');
             }
-
-            liveChart.update();
         }
 
-        setInterval(updateChart, 5000);
+        // Fetch immediately on load
+        fetchAndUpdateChart();
+
+        // Update the graph every 60 seconds (matching the iframe reload interval)
+        setInterval(fetchAndUpdateChart, 60000);
+
     </script>
 </body>
 </html>
