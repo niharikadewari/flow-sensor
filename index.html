@@ -18,15 +18,6 @@
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
-        /* Custom scrollbar for our new table */
-        .table-container::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        .table-container::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-        }
     </style>
 </head>
 <body class="text-gray-800 antialiased min-h-screen flex flex-col">
@@ -40,7 +31,7 @@
                     </div>
                     <div>
                         <h1 class="text-lg md:text-xl font-bold tracking-wide">ICAR-VPKAS, Almora</h1>
-                        <p class="text-emerald-200 text-xs md:text-sm leading-tight">All India Coordinated Research Project on Irrigation Water Management (ICAR-IIWM, Bhubaneswar) </p>
+                        <p class="text-emerald-200 text-xs md:text-sm leading-tight">All India Coordinated Research Project on Irrigation Water Management (ICAR-IIWM, Bhubaneswar)</p>
                     </div>
                 </div>
                 <div class="hidden lg:block text-right border-l border-emerald-700 pl-4">
@@ -65,8 +56,8 @@
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
             
             <div class="lg:col-span-5 space-y-6">
-                <div class="glass-card rounded-2xl shadow-md overflow-hidden transition-transform duration-300 hover:shadow-lg">
-                    <div class="relative h-64 sm:h-80 w-full bg-gray-200">
+                <div class="glass-card rounded-2xl shadow-md overflow-hidden transition-transform duration-300 hover:shadow-lg h-full">
+                    <div class="relative h-64 w-full bg-gray-200">
                         <img src="Picture1.jpg" alt="बाज़ार का नौला" class="absolute inset-0 w-full h-full object-cover">
                         <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
                         <div class="absolute bottom-4 left-4 right-4 text-white">
@@ -80,17 +71,17 @@
                         <ul class="space-y-3 text-sm text-gray-600">
                             <li class="flex items-start gap-3">
                                 <i class="fa-solid fa-location-dot mt-1 text-emerald-600 w-4"></i>
-                                <span><strong>Location:</strong>  Experimental Farm Halwalbagh, ICAR-VPKAS, Almora </span>
+                                <span><strong>Location:</strong> Experimental Farm Halwalbagh, ICAR-VPKAS, Almora</span>
                             </li>
                             <li class="flex items-start gap-3">
-                                  <i class="fa-solid fa-location-dot mt-1 text-emerald-600 w-4"></i>
-                                <span><strong>Latitude and Longitude:</strong> 29.6359°N, 79.6289°E</span>
+                                <i class="fa-solid fa-map-pin mt-1 text-emerald-600 w-4"></i>
+                                <span><strong>Lat/Long:</strong> 29.6359°N, 79.6289°E</span>
                             </li>
                             <li class="flex items-start gap-3">
-                               <i class="fa-solid fa-location-dot mt-1 text-emerald-600 w-4"></i>
-                                <span><strong>Elevation:</strong> 1,224m </span>
+                                <i class="fa-solid fa-mountain mt-1 text-emerald-600 w-4"></i>
+                                <span><strong>Elevation:</strong> 1,224m</span>
                             </li>
-                                  <li class="flex items-start gap-3">
+                            <li class="flex items-start gap-3">
                                 <i class="fa-solid fa-microchip mt-1 text-gray-500 w-4"></i>
                                 <span><strong>Sensor:</strong> YF-S201 Water Flow Sensor</span>
                             </li>
@@ -99,34 +90,28 @@
                 </div>
             </div>
 
-            <div class="lg:col-span-7 flex flex-col space-y-8">
-                <div class="glass-card rounded-2xl shadow-md p-6 flex flex-col border-t-4 border-emerald-600 h-[550px]">
+            <div class="lg:col-span-7 flex flex-col">
+                <div class="glass-card rounded-2xl shadow-md p-6 border-t-4 border-blue-500 flex flex-col h-full">
                     <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
                         <div>
-                            <h3 class="text-2xl font-bold text-gray-800">Recent Telemetry Data</h3>
-                            <p class="text-sm text-gray-500 mt-1">Showing the last 10 readings. Updates every 60s.</p>
+                            <h3 class="text-2xl font-bold text-gray-800">Discharge Trend Analysis</h3>
+                            <p class="text-sm text-gray-500">Live graphical representation of the last 10 readings.</p>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <span id="chartLoadingText" class="text-xs text-blue-500 font-medium animate-pulse hidden"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Fetching Live Data...</span>
+                            <span id="chartErrorText" class="text-xs text-red-500 font-medium hidden"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Sync Failed</span>
+                            <div class="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
+                                <div class="w-2 h-2 bg-blue-500 rounded-full animate-ping"></div>
+                                Live Graph
+                            </div>
                         </div>
                     </div>
-
-                    <div class="relative flex-grow rounded-xl overflow-y-auto border border-gray-200 bg-white shadow-inner table-container">
-                        <div id="loadingOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-50/90 z-10">
-                            <i class="fa-solid fa-circle-notch fa-spin text-4xl text-emerald-600 mb-3"></i>
-                            <p class="text-gray-500 font-medium">Syncing with Sensor...</p>
-                        </div>
-                        
-                        <table class="w-full text-left text-sm text-gray-600">
-                            <thead class="bg-gray-100 text-gray-800 font-semibold sticky top-0 shadow-sm">
-                                <tr>
-                                    <th class="px-6 py-4">Date & Time</th>
-                                    <th class="px-6 py-4 text-right">Discharge (L/min)</th>
-                                </tr>
-                            </thead>
-                            <tbody id="liveDataTableBody" class="divide-y divide-gray-100">
-                                </tbody>
-                        </table>
+                    
+                    <div class="relative flex-grow w-full min-h-[350px]">
+                        <canvas id="liveDischargeChart"></canvas>
                     </div>
 
-                    <div class="mt-4 flex items-center justify-between text-xs text-gray-500">
+                    <div class="mt-6 flex items-center justify-between text-xs text-gray-500 border-t pt-4">
                         <span id="lastUpdatedText"><i class="fa-regular fa-clock mr-1"></i> Waiting for first sync...</span>
                         <span class="flex items-center gap-1 font-semibold text-emerald-700 uppercase tracking-tighter animate-pulse">
                             <i class="fa-solid fa-satellite"></i> Uplink Active
@@ -134,30 +119,11 @@
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div class="mt-8 glass-card rounded-2xl shadow-md p-6 border-t-4 border-blue-500">
-            <div class="flex justify-between items-center mb-4 flex-wrap gap-4">
-                <div>
-                    <h3 class="text-2xl font-bold text-gray-800">Discharge Trend Analysis</h3>
-                    <p class="text-sm text-gray-500">Graphing the last 10 real-time data points.</p>
-                </div>
-                <div class="flex items-center gap-4">
-                    <span id="chartLoadingText" class="text-xs text-blue-500 font-medium animate-pulse hidden"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Fetching Live Data...</span>
-                    <span id="chartErrorText" class="text-xs text-red-500 font-medium hidden"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Sync Failed</span>
-                    <div class="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
-                        <div class="w-2 h-2 bg-blue-500 rounded-full animate-ping"></div>
-                        Live Graph
-                    </div>
-                </div>
-            </div>
-            <div class="relative h-[350px] w-full">
-                <canvas id="liveDischargeChart"></canvas>
-            </div>
         </div>
     </main>
 
-    <footer class="bg-gray-800 text-gray-400 py-6 text-center text-sm">
+    <footer class="bg-gray-800 text-gray-400 py-6 text-center text-sm mt-auto">
         <div class="max-w-7xl mx-auto px-4">
             <p>&copy; <span id="year"></span> ICAR - Vivekananda Parvatiya Krishi Anusandhan Sansthan.</p>
             <p class="mt-1">AICRP on Irrigation Water Management (Almora Centre)</p>
@@ -169,8 +135,6 @@
 
         // --- UI ELEMENTS ---
         const updateText = document.getElementById('lastUpdatedText');
-        const tableBody = document.getElementById('liveDataTableBody');
-        const loadingOverlay = document.getElementById('loadingOverlay');
 
         // --- CHART INITIALIZATION ---
         const ctx = document.getElementById('liveDischargeChart').getContext('2d');
@@ -224,7 +188,7 @@
             }
         });
 
-        // --- DATA FETCHING & UI UPDATE LOGIC ---
+        // --- GOOGLE SHEETS API FETCHING LOGIC ---
         const sheetId = '1Ezqokpwi8i1e0J8NUqKnWMgLuWeGcedoG3AHZNhnFMY';
         const gvizUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&gid=0`;
 
@@ -249,30 +213,8 @@
                 // Arrays for the chart
                 const newLabels = [];
                 const newData = [];
-                
-                // Clear the table before adding new rows
-                tableBody.innerHTML = '';
 
-                // We create a copy and reverse it so the newest entry is at the TOP of the table
-                const tableDataReversed = [...latest10Data].reverse();
-
-                // 1. Populate the HTML Table (Top to Bottom = Newest to Oldest)
-                tableDataReversed.forEach(row => {
-                    let timestampRaw = row.c[0].f || row.c[0].v; 
-                    let flowValueRaw = row.c[1].v;
-                    
-                    let displayFlow = (typeof flowValueRaw === 'number') ? flowValueRaw.toFixed(2) : '--';
-
-                    const tr = document.createElement('tr');
-                    tr.className = "hover:bg-emerald-50 transition-colors";
-                    tr.innerHTML = `
-                        <td class="px-6 py-4 font-medium">${timestampRaw}</td>
-                        <td class="px-6 py-4 text-right text-emerald-700 font-bold">${displayFlow}</td>
-                    `;
-                    tableBody.appendChild(tr);
-                });
-
-                // 2. Populate the Chart (Left to Right = Oldest to Newest)
+                // Populate the Chart (Left to Right = Oldest to Newest)
                 latest10Data.forEach(row => {
                     let timestampRaw = row.c[0].f || row.c[0].v; 
                     let flowValueRaw = row.c[1].v;               
@@ -289,10 +231,9 @@
                 liveChart.data.datasets[0].data = newData;
                 liveChart.update();
 
-                // Update "Last Synced" text and hide loading overlay
+                // Update "Last Synced" text
                 const now = new Date();
                 updateText.innerHTML = `<i class="fa-regular fa-clock mr-1"></i> Last refreshed at ${now.toLocaleTimeString()}`;
-                loadingOverlay.style.display = 'none';
 
             } catch (error) {
                 console.error("Error reading Google Sheet data:", error);
