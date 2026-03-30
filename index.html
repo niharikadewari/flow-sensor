@@ -201,8 +201,7 @@
                     y: {
                         display: true,
                         title: { display: true, text: 'Flow (L/min)', font: { weight: 'bold' } },
-                        min: 1, // Locked lower bound
-                        max: 3, // Locked upper bound to show variation clearly
+                        // Auto-scaling enabled by removing min/max to show minute variations clearly
                         grid: { borderDash: [5, 5] }
                     }
                 },
@@ -283,7 +282,7 @@
 
                 latest10Data.forEach(row => {
                     let timestampRaw = row.c[0].f || String(row.c[0].v); 
-                    let flowValue = row.c[1].v;               
+                    let flowValue = row.c[1].v;                
                     
                     let timeString = timestampRaw.split(' ').pop(); // Just grab the time part
                     parsedLiveData.labels.push(timeString);
