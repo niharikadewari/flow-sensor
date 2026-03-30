@@ -95,13 +95,13 @@
                     <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
                         <div>
                             <h3 class="text-2xl font-bold text-gray-800" id="chartTitle">Live Discharge Data</h3>
-                            <p class="text-sm text-gray-500" id="chartSubtitle">Graphical representation of the last 10 readings.</p>
+                            <p class="text-sm text-gray-500" id="chartSubtitle">Graphical representation of the last 30 readings.</p>
                         </div>
                         
                         <div class="flex flex-col items-end gap-3">
                             <div class="flex p-1 bg-gray-100 rounded-lg shadow-inner">
                                 <button id="tabLive" class="px-4 py-2 text-sm font-semibold rounded-md transition-all duration-200 bg-white shadow-sm text-blue-600" onclick="switchTab('live')">
-                                    <i class="fa-solid fa-bolt mr-1"></i> Live (Last 10)
+                                    <i class="fa-solid fa-bolt mr-1"></i> Live (Last 30)
                                 </button>
                                 <button id="tabDaily" class="px-4 py-2 text-sm font-semibold rounded-md transition-all duration-200 text-gray-500 hover:text-gray-700" onclick="switchTab('daily')">
                                     <i class="fa-solid fa-calendar-day mr-1"></i> Daily Average
@@ -201,7 +201,7 @@
                     y: {
                         display: true,
                         title: { display: true, text: 'Flow (L/min)', font: { weight: 'bold' } },
-                        // Auto-scaling enabled by removing min/max to show minute variations clearly
+                        beginAtZero: false, // Forces the graph to zoom tightly on the min/max of your actual data
                         grid: { borderDash: [5, 5] }
                     }
                 },
@@ -219,7 +219,7 @@
                 tabDaily.className = "px-4 py-2 text-sm font-semibold rounded-md transition-all duration-200 text-gray-500 hover:text-gray-700";
                 
                 chartTitle.innerText = "Live Discharge Data";
-                chartSubtitle.innerText = "Graphical representation of the last 10 readings.";
+                chartSubtitle.innerText = "Graphical representation of the last 30 readings.";
                 
                 mainChart.data.datasets[0].borderColor = '#3b82f6'; // Blue
                 mainChart.data.datasets[0].pointBorderColor = '#3b82f6';
@@ -275,12 +275,12 @@
                 
                 if(validRows.length === 0) throw new Error("No valid data found");
 
-                // --- 1. PROCESS LIVE DATA (Last 10) ---
-                const latest10Data = validRows.slice(-10); 
+                // --- 1. PROCESS LIVE DATA (Last 30) ---
+                const latestData = validRows.slice(-30); 
                 parsedLiveData.labels = [];
                 parsedLiveData.data = [];
 
-                latest10Data.forEach(row => {
+                latestData.forEach(row => {
                     let timestampRaw = row.c[0].f || String(row.c[0].v); 
                     let flowValue = row.c[1].v;                
                     
